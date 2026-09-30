@@ -1,0 +1,29 @@
+services:
+  obc:
+    build:
+      context: .
+      dockerfile: obc/Dockerfile
+    networks: [link]
+
+  payload:
+    build:
+      context: .
+      dockerfile: payload/Dockerfile
+    networks: [link]
+    volumes:
+      - ./data/payload:/data  
+
+  ground:
+    build:
+      context: .
+      dockerfile: ground/Dockerfile
+    networks: [link]
+    depends_on: [obc, payload]
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./data/ground:/data    
+
+networks:
+  link:
+    driver: bridge
