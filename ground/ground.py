@@ -1,1 +1,10 @@
-OLIVER JAG TROR ATT ALL FUNCTIONS FRÅN FT_GROUND SKA HIT, MEN VET INTE HUR MAN GÖR SÅNT SÅ HURRAY
+import os
+import socket
+import time
+from datetime import datetime
+
+MIB_PATH = os.environ_get("MIB_PATH", "mib.txt")
+
+
+def load_mib(path=MIB_PATH):
+  tcs, tms = {}, {}
