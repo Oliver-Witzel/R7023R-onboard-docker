@@ -1,11 +1,21 @@
+import os
 import socket
 import time
+from datetime import datetime
 from spacepackets.ccsds.spacepacket import (
     SpacePacket, SpacePacketHeader, PacketType, SequenceFlags,
 )
 
 HOST, PORT = "obc", 5000   # 'receiver' = compose service name
 APID = 0x42
+
+MIB_PATH = os.environ_get("MIB_PATH", "mib.txt")
+
+
+def load_mib(path=MIB_PATH):
+  tcs, tms = {}, {}
+
+
 
 def connect_with_retry() -> socket.socket:
     while True:
