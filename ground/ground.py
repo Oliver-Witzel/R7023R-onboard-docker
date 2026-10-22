@@ -2,6 +2,7 @@ import os
 import socket
 import time
 from datetime import datetime
+from ccsds import load_mib
 from spacepackets.ccsds.spacepacket import (
     SpacePacket, SpacePacketHeader, PacketType, SequenceFlags,
 )
@@ -9,11 +10,12 @@ from spacepackets.ccsds.spacepacket import (
 HOST, PORT = "obc", 5000   # 'receiver' = compose service name
 APID = 0x42
 
-MIB_PATH = os.environ_get("MIB_PATH", "mib.txt")
+class Ground:
+    def __init__(self):
+        self.tcs = load_mib()
 
-
-def load_mib(path=MIB_PATH):
-  tcs, tms = {}, {}
+    def connect(self):
+        self.sock = socket.create_connection((HOST, PORT), timeout=5)
 
 
 
