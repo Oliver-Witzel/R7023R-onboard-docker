@@ -18,11 +18,12 @@ class Ground:
         self.frame = Framer()
         self.sel = selectors.DefaultSelector()
         self.pending = {}
+        self.tcs = load_mib()[0]  # Load only TCs from MIB
 
 
     def connect(self):
-        s = socket.create_connection((HOST, PORT), timeout=5)
-        #except OSError: print("Whoops"); return
+        try: s = socket.create_connection((HOST, PORT), timeout=5)
+        except: OSError: print("Whoops"); return
         s.setblocking(False)
         self.sock=s
         print("Connection to S/C established")
@@ -56,18 +57,19 @@ class Ground:
                 if key.fileobj == sys.stdin:
                     cmd = sys.stdin.readline().strip()
                     if cmd == "QUIT": return 
-                    if cmd: self.sendTC(cmd)
+                    if cmd: print(cmd)
                 else: key.data(key.fileobj)
-
             for seg,(apid, timestamp) in self.pending.items():
-                if time.monotonic() - timestamp > 10:
+                if seg and time.monotonic() - timestamp > 10:
                     print(f"TM APID={apid} timeout for seg={seg}", flush=True)
                     del self.pending[seg]
-            
-            for n in range(10):
-                payload = f"helo {n}".encode()
-                self.sendTC(payload)
-                time.sleep(1)
+            #yo=True
+            #if yo:
+            #    for n in range(10):
+            #        payload = f"helo {n}".encode()
+            #       self.sendTC(payload)
+            #        time.sleep(1)
+            #yo=False
 
 
 
