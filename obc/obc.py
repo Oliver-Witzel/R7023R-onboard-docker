@@ -4,7 +4,7 @@ from spacepackets.ccsds.spacepacket import SpacePacketHeader
 from common.common import *
 
 HOST, PORT = "0.0.0.0", 5000
-
+# gjord nigg
 class OBC:
     def __init__(self):
         #self.tcs = load_mib()
