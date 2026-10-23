@@ -1,11 +1,11 @@
 #  MIB  
-#  TC  <name>  <target>        <args>                  <time-tag allowed>  
-TC  SET-OBT        PF          time:hh:mm:ss            NO
-TC  REQ-HK         PF          -                        YES
-TC  SET-PF-MODE    PF          mode:SAFE|NADIR|TARGET   YES
-TC  SET-PL-POWER   PL          power:0|1                YES
-TC  PL-TAKE-IMAGE  PL          -                        YES
-TC  REQ-PL-HK      PL          -                        YES
+#  TC  <name>  <target>        <args>                       <time-tag allowed>  
+TC  SET-OBT        PF          time=hh:mm:ss                         NO
+TC  REQ-HK         PF          -                            YES
+TC  SET-PF-MODE    PF          mode=SAFE,NADIR,TARGET       YES
+TC  SET-PL-POWER   PL          power=1,0                    YES
+TC  PL-TAKE-IMAGE  PL          -                            YES
+TC  REQ-PL-HK      PL          -                            YES
 
 #  TM  <name>  <type>  <fields>
 TM  ACK      EVENT     tc_seq,cmd

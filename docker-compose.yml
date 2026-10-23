@@ -21,6 +21,8 @@ services:
     depends_on: [obc, payload]
     stdin_open: true
     tty: true
+    environment:
+      - MIB_PATH=/app/common/mib.txt
     volumes:
       - ./data/ground:/data    
 

@@ -12,8 +12,23 @@ def load_mib(path=MIB_PATH):
     for line in f:
       if line and not line.startswith("#"):
         parts = line.split()
-        if len(parts) == 3:
-          name, target, args = parts
+        if line.startswith("TC"):
+          args = parts[3].split("=")[1:]
+          tcs[parts[1]] = {"name": parts[1], "target": parts[2], "args": args, "time_tag_allowed": parts[4] == "YES"}
+        elif line.startswith("TM"):
+          tms[parts[1]] = {"name": parts[1], "type": parts[2], "fields": parts[3:]}
+  return tcs, tms
+
+
+
+#-----Packing Functions-----
+#def encode_tc():
+
+#def decode_tc():
+
+#def encode_tm():
+
+#def decode_tm():
 
 
 class Framer:
