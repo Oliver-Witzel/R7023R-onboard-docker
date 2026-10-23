@@ -1,8 +1,8 @@
 #  MIB  
 #  TC  <name>  <target>        <args>                       <time-tag allowed>  
-TC  SET-OBT        PF          time=hh:mm:ss                         NO
-TC  REQ-HK         PF          -                            YES
-TC  SET-PF-MODE    PF          mode=SAFE,NADIR,TARGET       YES
+TC  SET-OBT        OBC         time=hh:mm:ss                NO
+TC  REQ-HK         OBC         -                            YES
+TC  SET-OBC-MODE   OBC         mode=SAFE,NADIR,TARGET       YES
 TC  SET-PL-POWER   PL          power=1,0                    YES
 TC  PL-TAKE-IMAGE  PL          -                            YES
 TC  REQ-PL-HK      PL          -                            YES
@@ -10,6 +10,6 @@ TC  REQ-PL-HK      PL          -                            YES
 #  TM  <name>  <type>  <fields>
 TM  ACK      EVENT     tc_seq,cmd
 TM  NACK     EVENT     tc_seq,cmd,reason
-TM  HK-PF    HK        obt,time_set,pf_mode,pl_power,tc_rx,tc_rej,tt_queue
+TM  HK-OBC   HK        obt,time_set,OBC_mode,pl_power,tc_rx,tc_rej,tt_queue
 TM  HK-PL    HK        obt,pl_mode,images,last_image,image_status
 TM  EVENT    EVENT     obt,id,text
