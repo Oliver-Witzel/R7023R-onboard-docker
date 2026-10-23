@@ -1,4 +1,7 @@
+from enum import IntEnum
 import os
+import struct
+import time
 from spacepackets.ccsds.spacepacket import (
     SpacePacket, SpacePacketHeader, PacketType, SequenceFlags,
 )
@@ -6,29 +9,39 @@ APID_OBC = 0x10
 MIB_PATH = os.environ.get("MIB_PATH", "mib.txt")
 HEADER_SIZE = 6
 
+class TmType(IntEnum):
+    ACK = 1; NACK = 2; HK_PF = 3; HK_PL = 4; EVENT = 5
+
+class Evt(IntEnum):
+    BOOT = 1; OBT_SET = 2; MODE_ACQ = 3; PL_ON = 4; PL_OFF = 5
+    TT_EXEC = 6; TT_FAIL = 7; SEQ_GAP = 8; IMG_START = 9; IMG_END = 10
+
+PF_MODES = ["SAFE", "NADIR", "TARGET", "TRANSITION"] 
+
+
+def s_to_HMS(s):
+  return f"{s//3600}:{s%3600//60}:{s%60}"
+
+def HMS_to_s(hms):
+  t,h,s = hms.split(":")
+  return int(t)*3600+int(h)*60+int(s)
+
+def get_s():
+  t = time.localtime()
+  return t.tm_hour * 3600 + t.tm_min * 60 + t.tm_sec
+
 def load_mib(path=MIB_PATH):
-  tcs, tms = {}, {}
+  name = {}
   with open(path) as f:
     for line in f:
       if line and not line.startswith("#"):
         parts = line.split()
         if line.startswith("TC"):
-          args = parts[3].split("=")[1:]
-          tcs[parts[1]] = {"name": parts[1], "target": parts[2], "args": args, "time_tag_allowed": parts[4] == "YES"}
-        elif line.startswith("TM"):
-          tms[parts[1]] = {"name": parts[1], "type": parts[2], "fields": parts[3:]}
-  return tcs, tms
+          args = parts[4].split("=")[1:]
+          name[parts[1]] = {"name": parts[1], "id":int(parts[2]),"target": parts[3], "args": args, "time_tag_allowed": parts[5] == "YES"}
+        #TODO add tms
+  return name, {t["id"]: t for t in name.values()}
 
-
-
-#-----Packing Functions-----
-#def encode_tc():
-
-#def decode_tc():
-
-#def encode_tm():
-
-#def decode_tm():
 
 
 class Framer:
@@ -58,6 +71,16 @@ def packer(Packet_Type, APID, seq,data):
     seq_flags=SequenceFlags.UNSEGMENTED,# Only sending complete packets
   )
   return SpacePacket(header,sec_header=None,user_data=data).pack()# No secondary header
+
+#----
+# I was trying to look into making the packet into structured byte arrays but that is was a rabbit hole, could be something for further development idk /Oliver
+
+#def encode_pack(cmd_id,times,data=b""):# first five bits will always be command id and a timestamp
+#  return struct.pack(">BI",cmd_id,times)+data
+#def decode_pack(data):
+#  return struct.unpack(">BI",data[:5]),data[5:]
+
+#----
 
 class SequenceCount:
   def __init__(self):

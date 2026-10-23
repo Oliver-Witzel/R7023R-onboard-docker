@@ -7,22 +7,36 @@ HOST, PORT = "0.0.0.0", 5000
 
 class OBC:
     def __init__(self):
-        self.tcs, self.tms = load_mib()
+        self.tcs, self.tcIDs = load_mib()
         self.seq = SequenceCount()
-        self.sock = None
         self.frame = Framer()
         self.sel = selectors.DefaultSelector()
+        self.gnd = None
+        self.time = None
+    def send_TM(self,data):
+        paket = packer(PacketType.TM,APID_OBC,self.seq.next(),data.encode())
+        self.gnd.sendall(paket)
+    def ack(self,cmd_id,seq,mes): self.send_TM(f"{TmType.ACK} {cmd_id} {seq} {mes}");  
     def gnd_acc(self,srv):
         conn, addr = srv.accept()
+        self.gnd = conn
         print("Accepting connection from",addr, flush=True)
         self.sel.register(conn,selectors.EVENT_READ,self.gnd_read)
 
     def gnd_read(self,conn):
         buf = conn.recv(4096)
         for hdr,data in self.frame.add(buf):
-            print(f"APID={hdr.apid} seq={hdr.seq_count} "
-                                      f"type={hdr.packet_type.name} payload={data!r}",
-                                      flush=True)
+            self.on_tc(hdr,data)
+            
+
+    def on_tc(self,hdr,data):
+        Id,args = data.decode().split()
+        if int(Id)==self.tcs["SET-OBT"]["id"]:
+            #TODO set the time
+            print(f"Time was set to {s_to_HMS(int(args))}")
+            self.ack(Id,hdr.seq_count,f"Time was set to {s_to_HMS(int(args))}")
+        
+            
 
     def run(self):
         srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

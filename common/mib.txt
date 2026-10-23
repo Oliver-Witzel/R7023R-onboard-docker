@@ -1,15 +1,15 @@
 #  MIB  
-#  TC  <name>  <target>        <args>                       <time-tag allowed>  
-TC  SET-OBT        OBC         time=hh:mm:ss                NO
-TC  REQ-HK         OBC         -                            YES
-TC  SET-OBC-MODE   OBC         mode=SAFE,NADIR,TARGET       YES
-TC  SET-PL-POWER   PL          power=1,0                    YES
-TC  PL-TAKE-IMAGE  PL          -                            YES
-TC  REQ-PL-HK      PL          -                            YES
+#   <name>       <id>  <target>    <args>                       <time-tag allowed>  
+TC  SET-OBT       1    OBC         time=hh:mm:ss                NO
+TC  REQ-HK        2    OBC         -                            YES
+TC  SET-OBC-MODE  3    OBC         mode=SAFE,NADIR,TARGET       YES
+TC  SET-PL-POWER  4    PL          power=1,0                    YES
+TC  PL-TAKE-IMAGE 5    PL          -                            YES
+TC  REQ-PL-HK     6    PL          -                            YES
 
-#  TM  <name>  <type>  <fields>
-TM  ACK      EVENT     tc_seq,cmd
-TM  NACK     EVENT     tc_seq,cmd,reason
-TM  HK-OBC   HK        obt,time_set,OBC_mode,pl_power,tc_rx,tc_rej,tt_queue
-TM  HK-PL    HK        obt,pl_mode,images,last_image,image_status
-TM  EVENT    EVENT     obt,id,text
+#  <name>  <id>  <type>    <fields>
+TM  ACK     1     EVENT     tc_seq,cmd
+TM  NACK    2     EVENT     tc_seq,cmd,reason
+TM  HK-OBC  3     HK        obt,time_set,OBC_mode,pl_power,tc_rx,tc_rej,tt_queue
+TM  HK-PL   4     HK        obt,pl_mode,images,last_image,image_status
+TM  EVENT   5     EVENT     obt,id,text

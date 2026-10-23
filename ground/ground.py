@@ -16,12 +16,12 @@ class Ground:
         self.frame = Framer()
         self.sel = selectors.DefaultSelector()
         self.pending = {}
-        self.tcs = load_mib()[0]  # Load only TCs from MIB
+        self.tcs, self.tcIDs = load_mib()  # Load only TCs from MIB
 
 
     def connect(self):
         try: s = socket.create_connection((HOST, PORT), timeout=5)
-        except: OSError: print("Whoops"); return
+        except OSError: print("Whoops"); return
         s.setblocking(False)
         self.sock=s
         print("Connection to S/C established")
@@ -30,7 +30,7 @@ class Ground:
 
     def sendTC(self, input):
         seq = self.seq.next()
-        self.sock.sendall(packer(PacketType.TM,APID_OBC,seq,input))
+        self.sock.sendall(packer(PacketType.TM,APID_OBC,seq,input.encode()))
         self.pending[seq] = (APID_OBC,time.monotonic())
         print(f"Sent TC APID={APID_OBC} seq={seq}", flush=True)
     
@@ -42,22 +42,33 @@ class Ground:
                 print(f"GAP in TM APID={hdr.apid}  at last_seq={last_seq}", flush=True)
             self.pending[hdr.apid] = hdr.seq_count
 
-            print(f"APID={hdr.apid} seq={hdr.seq_count} "
+            print(f"TM recieved APID={hdr.apid} seq={hdr.seq_count} "
                   f"type={hdr.packet_type.name} payload={payload!r}",
                   flush=True)
-            del self.pending[hdr.seq_count]    
+            del self.pending[hdr.seq_count]
+
+    def parse_cmd(self,cmd):
+        parts=cmd.split()
+        if parts[0] not in self.tcs:  return print("Error: Unknown command")
+        #TODO add fail checks for timestamp and arguments
+        #The TC packet should be of this format
+        #"{cmd_id} {args} {timestamp} " #TODO add execution time
+        self.sendTC(f"{self.tcs[parts[0]]["id"]} {HMS_to_s(parts[1])} ")
+                    
     def run(self):
         if not self.sock:self.connect()
         self.sel.register(sys.stdin, selectors.EVENT_READ, None)
         print("Enter command: ")
         while True:
             for key, _ in self.sel.select(timeout=0.2):
-                if key.fileobj == sys.stdin:
+                if key.fileobj == sys.stdin:# if selcetor event comes from stdin its from the terminal
                     cmd = sys.stdin.readline().strip()
                     if cmd == "QUIT": return 
-                    if cmd: print(cmd)
-                else: key.data(key.fileobj)
-            for seg,(apid, timestamp) in self.pending.items():
+                    if cmd: self.parse_cmd(cmd)
+                else: key.data(key.fileobj)#otherwise call the passed function
+
+            
+            for seg,(apid, timestamp) in list(self.pending.items()):
                 if seg and time.monotonic() - timestamp > 10:
                     print(f"TC APID={apid} timeout for seg={seg}", flush=True)
                     del self.pending[seg]
