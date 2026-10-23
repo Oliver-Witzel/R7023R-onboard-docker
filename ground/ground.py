@@ -16,6 +16,7 @@ class Ground:
         self.sock = None
         self.frame = Framer()
         self.sel = selectors.DefaultSelector()
+        self.pending = {}
 
 
     def connect(self):
@@ -24,19 +25,44 @@ class Ground:
         s.setblocking(False)
         self.sock=s
         print("Connection to S/C established")
+        self.sel.register(self.sock, selectors.EVENT_READ, self.readTM)
 
 
     def sendTC(self, input):
-        self.sock.sendall(packer(PacketType.TM,APID_OBC,self.seq.next(),input))
-        print("sent",self.seq.n)
+        seq = self.seq.next()
+        self.sock.sendall(packer(PacketType.TM,APID_OBC,seq,input))
+        self.pending[seq] = (APID_OBC,time.monotonic())
+        print(f"Sent TC APID={APID_OBC} seq={seq}", flush=True)
+    
+    def readTM(self, sock):
+        data = sock.recv(4096)
+        for hdr, payload in self.frame.add(data):
+            last_seq = self.pending.get(hdr.apid)
+            if last_seq is not None and hdr.seq_count != last_seq+1:
+                print(f"GAP in TM APID={hdr.apid}  at last_seq={last_seq}", flush=True)
+            self.pending[hdr.apid] = hdr.seq_count
 
+            print(f"APID={hdr.apid} seq={hdr.seq_count} "
+                  f"type={hdr.packet_type.name} payload={payload!r}",
+                  flush=True)
+            del self.pending[hdr.seq_count]    
     def run(self):
         if not self.sock:self.connect()
+        while True:
+            for key, _ in self.sel.select():
+                key.data(key.fileobj)
 
-        for n in range(10):
-            payload = f"helo {n}".encode()
-            self.sendTC(payload)
-            time.sleep(1)
 
-        
-if __name__ == "__main__": Ground().run()   
+            for seg,(apid, timestamp) in self.pending.items():
+                if time.monotonic() - timestamp > 10:
+                    print(f"TM APID={apid} timeout for seg={seg}", flush=True)
+                    del self.pending[seg]
+            
+            for n in range(10):
+                payload = f"helo {n}".encode()
+                self.sendTC(payload)
+                time.sleep(1)
+
+
+
+if __name__ == "__main__": Ground().run()
