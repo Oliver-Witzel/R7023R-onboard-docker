@@ -1,5 +1,6 @@
 import selectors
 import socket
+import sys
 import time
 
 from spacepackets.ccsds.spacepacket import PacketType
@@ -48,10 +49,15 @@ class Ground:
             del self.pending[hdr.seq_count]    
     def run(self):
         if not self.sock:self.connect()
+        self.sel.register(sys.stdin, selectors.EVENT_READ, None)
+        print("Enter command: ")
         while True:
-            for key, _ in self.sel.select():
-                key.data(key.fileobj)
-
+            for key, _ in self.sel.select(timeout=0.2):
+                if key.fileobj == sys.stdin:
+                    cmd = sys.stdin.readline().strip()
+                    if cmd == "QUIT": return 
+                    if cmd: self.sendTC(cmd)
+                else: key.data(key.fileobj)
 
             for seg,(apid, timestamp) in self.pending.items():
                 if time.monotonic() - timestamp > 10:
