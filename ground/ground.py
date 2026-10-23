@@ -8,11 +8,9 @@ from spacepackets.ccsds.spacepacket import PacketType
 from common.common import *
 
 HOST, PORT = "obc", 5000   # 'receiver' = compose service name
-APID = 0x42
 
 class Ground:
     def __init__(self):
-        #self.tcs = load_mib()
         self.seq = SequenceCount()
         self.sock = None
         self.frame = Framer()
@@ -61,7 +59,7 @@ class Ground:
                 else: key.data(key.fileobj)
             for seg,(apid, timestamp) in self.pending.items():
                 if seg and time.monotonic() - timestamp > 10:
-                    print(f"TM APID={apid} timeout for seg={seg}", flush=True)
+                    print(f"TC APID={apid} timeout for seg={seg}", flush=True)
                     del self.pending[seg]
             #yo=True
             #if yo:

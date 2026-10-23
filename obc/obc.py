@@ -7,7 +7,7 @@ HOST, PORT = "0.0.0.0", 5000
 
 class OBC:
     def __init__(self):
-        #self.tcs = load_mib()
+        self.tcs, self.tms = load_mib()
         self.seq = SequenceCount()
         self.sock = None
         self.frame = Framer()
