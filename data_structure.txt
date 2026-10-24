@@ -1,0 +1,27 @@
+This file is a quick look up of how the packet data is structured
+TC
+GENERAL
+"{cmd_id} {timestamp} {args} {timetag}"
+ARGS
+SET-OBT
+{time}
+SET-OBC-MODE
+{mode}
+SET-PL-POWER
+{power}
+
+
+TM
+GENERAL
+"{tm_type} {obt} {args}"
+ARGS
+ACK
+"{seq},{cmd_id}"
+NACK
+"{seq},{cmd_id},{mes}"
+HK_OBC
+"{time_set},{MODE},{pl_power},{tc_recived},{tc_rejected},{tt_queue}"
+EVENT
+"{id},{mes}"
+
+

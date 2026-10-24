@@ -38,6 +38,7 @@ def load_mib(path=MIB_PATH):
         parts = line.split()
         if line.startswith("TC"):
           args = parts[4].split("=")[1:]
+          if args and "," in args[0]:args[0]=args[0].split(",")
           name[parts[1]] = {"name": parts[1], "id":int(parts[2]),"target": parts[3], "args": args, "time_tag_allowed": parts[5] == "YES"}
         #TODO add tms
   return name, {t["id"]: t for t in name.values()}

@@ -12,11 +12,21 @@ class OBC:
         self.frame = Framer()
         self.sel = selectors.DefaultSelector()
         self.gnd = None
-        self.time = None
-    def send_TM(self,data):
-        paket = packer(PacketType.TM,APID_OBC,self.seq.next(),data.encode())
+        self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0
+    def send_TM(self,TM_type,data):
+        paket = packer(PacketType.TM,APID_OBC,self.seq.next(),f"{TM_type} {self.now()} {data}".encode())
         self.gnd.sendall(paket)
-    def ack(self,cmd_id,seq,mes): self.send_TM(f"{TmType.ACK} {cmd_id} {seq} {mes}");  
+    def ack(self,cmd_id,seq): self.send_TM(TmType.ACK,f"{cmd_id},{seq}")
+    def nack(self,cmd_id,seq,mes): self.send_TM(TmType.NACK,f"{cmd_id},{seq},{mes}")
+    def obc_hk(self):self.send_TM(1,1)    
+    def event(self,id,mes): self.send_TM(TmType.EVENT,f"{id},{mes}")
+
+    def now(self):
+        if self.time_set:
+            return (self.obt_base + int(time.monotonic() - self.obt_mono))
+        return int(time.monotonic() - self.t0)
+    
+
     def gnd_acc(self,srv):
         conn, addr = srv.accept()
         self.gnd = conn
@@ -30,14 +40,21 @@ class OBC:
             
 
     def on_tc(self,hdr,data):
-        Id,args = data.decode().split()
+        Id,tt,args = data.decode().split()
+        #TODO check seq order
+        #TODO check mode
+        #TODO check tt
+        self.ack(Id,hdr.seq_count)
+        self.execute(Id,args)
+        
+    def execute(self,Id,args):       
         if int(Id)==self.tcs["SET-OBT"]["id"]:
-            #TODO set the time
+            self.obt_base, self.obt_mono, self.time_set = int(args), time.monotonic(), True
+            self.event(Evt.OBT_SET, f"OBT SET {s_to_HMS(int(args))}")
             print(f"Time was set to {s_to_HMS(int(args))}")
-            self.ack(Id,hdr.seq_count,f"Time was set to {s_to_HMS(int(args))}")
+
         
             
-
     def run(self):
         srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

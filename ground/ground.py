@@ -16,8 +16,9 @@ class Ground:
         self.frame = Framer()
         self.sel = selectors.DefaultSelector()
         self.pending = {}
+        self.last_tm_seq={}
         self.tcs, self.tcIDs = load_mib()  # Load only TCs from MIB
-
+        
 
     def connect(self):
         try: s = socket.create_connection((HOST, PORT), timeout=5)
@@ -37,23 +38,29 @@ class Ground:
     def readTM(self, sock):
         data = sock.recv(4096)
         for hdr, payload in self.frame.add(data):
-            last_seq = self.pending.get(hdr.apid)
+            last_seq = self.last_tm_seq.get(hdr.apid)
             if last_seq is not None and hdr.seq_count != last_seq+1:
-                print(f"GAP in TM APID={hdr.apid}  at last_seq={last_seq}", flush=True)
-            self.pending[hdr.apid] = hdr.seq_count
-
-            print(f"TM recieved APID={hdr.apid} seq={hdr.seq_count} "
-                  f"type={hdr.packet_type.name} payload={payload!r}",
-                  flush=True)
-            del self.pending[hdr.seq_count]
-
+                print(f"TM seq gap for APID={hdr.apid}  at last_seq={last_seq}", flush=True)
+            self.last_tm_seq[hdr.apid] = hdr.seq_count
+            tm_type,obt,args=payload.decode().split()
+            if args and "," in args[0]:args[0]=args[0].split(",")
+            self.print_log(hdr,tm_type,obt,args)
+            
+            
+    def print_log(self,hdr,tm_type,obt,args):
+        txt=""
+        if tm_type==TmType.ACK: txt=f"TC {self.tcIDs[args[0]]["name"]} seq:{args[1]} Acknowledged by APID:{hdr.apid}"
+        if tm_type==TmType.NACK: txt=f"TC {self.tcIDs[args[0]]["name"]} seq:{args[1]} Rejected. Reason:{args[2]}"
+        if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(args[0]).name} message:{args[1]}"
+        print(f"[{s_to_HMS(get_s())}] OBT {obt}  {txt}")
+        del self.pending[hdr.seq_count]
     def parse_cmd(self,cmd):
         parts=cmd.split()
         if parts[0] not in self.tcs:  return print("Error: Unknown command")
         #TODO add fail checks for timestamp and arguments
         #The TC packet should be of this format
-        #"{cmd_id} {args} {timestamp} " #TODO add execution time
-        self.sendTC(f"{self.tcs[parts[0]]["id"]} {HMS_to_s(parts[1])} ")
+        #"{cmd_id} {timestamp} {args} " #TODO add execution time
+        self.sendTC(f"{self.tcs[parts[0]]["id"]} {"NO_TT"} {HMS_to_s(parts[1])} ")
                     
     def run(self):
         if not self.sock:self.connect()
