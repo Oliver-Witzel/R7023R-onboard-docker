@@ -14,7 +14,7 @@ class OBC:
         self.gnd = None
         self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0
     def send_TM(self,TM_type,data):
-        paket = packer(PacketType.TM,APID_OBC,self.seq.next(),f"{TM_type} {self.now()} {data}".encode())
+        paket = packer(PacketType.TM,APID_OBC,self.seq.next(),f"{TM_type}_{self.now()}_{data}".encode())
         self.gnd.sendall(paket)
     def ack(self,cmd_id,seq): self.send_TM(TmType.ACK,f"{cmd_id},{seq}")
     def nack(self,cmd_id,seq,mes): self.send_TM(TmType.NACK,f"{cmd_id},{seq},{mes}")
@@ -34,13 +34,14 @@ class OBC:
         self.sel.register(conn,selectors.EVENT_READ,self.gnd_read)
 
     def gnd_read(self,conn):
-        buf = conn.recv(4096)
+        try:buf = conn.recv(4096)
+        except ConnectionResetError:self.gnd=None;return print("dropped gnd")
         for hdr,data in self.frame.add(buf):
             self.on_tc(hdr,data)
             
 
     def on_tc(self,hdr,data):
-        Id,tt,args = data.decode().split()
+        Id,tt,args = data.decode().split("_")
         #TODO check seq order
         #TODO check mode
         #TODO check tt

@@ -42,25 +42,29 @@ class Ground:
             if last_seq is not None and hdr.seq_count != last_seq+1:
                 print(f"TM seq gap for APID={hdr.apid}  at last_seq={last_seq}", flush=True)
             self.last_tm_seq[hdr.apid] = hdr.seq_count
-            tm_type,obt,args=payload.decode().split()
-            if args and "," in args[0]:args[0]=args[0].split(",")
+            tm_type,obt,args=payload.decode().split("_")
+            tm_type = int(tm_type)
+            obt = int(obt)
+            if args and "," in args:args=args.split(",")
             self.print_log(hdr,tm_type,obt,args)
             
             
     def print_log(self,hdr,tm_type,obt,args):
         txt=""
-        if tm_type==TmType.ACK: txt=f"TC {self.tcIDs[args[0]]["name"]} seq:{args[1]} Acknowledged by APID:{hdr.apid}"
-        if tm_type==TmType.NACK: txt=f"TC {self.tcIDs[args[0]]["name"]} seq:{args[1]} Rejected. Reason:{args[2]}"
-        if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(args[0]).name} message:{args[1]}"
-        print(f"[{s_to_HMS(get_s())}] OBT {obt}  {txt}")
-        del self.pending[hdr.seq_count]
+        if tm_type==TmType.ACK: txt=f"TC {self.tcIDs[int(args[0])]["name"]} seq:{args[1]} Acknowledged by APID:{hdr.apid}"
+        if tm_type==TmType.NACK: txt=f"TC {self.tcIDs[int(args[0])]["name"]} seq:{args[1]} Rejected. Reason:{args[2]}"
+        if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(int(args[0])).name} message:{args[1]}"
+        print(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}")
+        #del self.pending[hdr.seq_count]
     def parse_cmd(self,cmd):
         parts=cmd.split()
         if parts[0] not in self.tcs:  return print("Error: Unknown command")
+        if parts[0] == "SET-OBT":
+            self.sendTC(f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
         #TODO add fail checks for timestamp and arguments
         #The TC packet should be of this format
         #"{cmd_id} {timestamp} {args} " #TODO add execution time
-        self.sendTC(f"{self.tcs[parts[0]]["id"]} {"NO_TT"} {HMS_to_s(parts[1])} ")
+        
                     
     def run(self):
         if not self.sock:self.connect()
@@ -72,6 +76,7 @@ class Ground:
                     cmd = sys.stdin.readline().strip()
                     if cmd == "QUIT": return 
                     if cmd: self.parse_cmd(cmd)
+                    print(">")
                 else: key.data(key.fileobj)#otherwise call the passed function
 
             

@@ -1,7 +1,7 @@
 This file is a quick look up of how the packet data is structured
 TC
 GENERAL
-"{cmd_id} {timestamp} {args} {timetag}"
+"{cmd_id}_{timestamp}_{args}_{timetag}"
 ARGS
 SET-OBT
 {time}
@@ -13,7 +13,7 @@ SET-PL-POWER
 
 TM
 GENERAL
-"{tm_type} {obt} {args}"
+"{tm_type}_{obt}_{args}"
 ARGS
 ACK
 "{seq},{cmd_id}"
