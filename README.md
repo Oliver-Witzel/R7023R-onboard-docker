@@ -5,7 +5,7 @@ This projects aims to simulate a ground to S/C communication protocoll using doc
 
 # Running the program
     docker compose up
-    In another terminal run
+    In another terminal run (powershell for windows)
     docker attach $(docker compose ps -q ground) 
 
 
