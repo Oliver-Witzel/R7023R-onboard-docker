@@ -14,11 +14,11 @@ class TmType(IntEnum):
 
 class Evt(IntEnum):
     BOOT = 1; OBT_SET = 2; MODE_ACQ = 3; PL_ON = 4; PL_OFF = 5
-    TT_EXEC = 6; TT_FAIL = 7; SEQ_GAP = 8; IMG_START = 9; IMG_END = 10
+    TT_EXEC = 6; TT_FAIL = 7; SEQ_GAP = 8; IMG_START = 9; IMG_END = 10; HK_ACQ = 11;
 
 OBC_MODES = ["SAFE", "NADIR", "TARGET", "TRANSITION"]
 PL_MODES = ["OFF", "ON", "IMAGING"]
-
+PL_CMD=["TAKE-IMAGE","TURN-ON","TURN-ON","HK"]
 
 def s_to_HMS(s):
   return f"{s//3600}:{s%3600//60}:{s%60}"

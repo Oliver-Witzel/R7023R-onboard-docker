@@ -1,29 +1,42 @@
 from common.common import *
-
+from threading import Timer
 
 class Payload:
-	def __init__(self):
+	def __init__(self,report):
 		self.mode = PL_MODES[0]
 		self.power= False
 		self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0
-		
+		self.log = open(os.environ.get("PL_LOG", "Pl_log.txt"), "a", buffering=1)
+		self.taken_images = [len(line.rstrip("\r\n")) for line in self.log]
+		self.last_image_time = 0
+		self.report = report
 	def turn_on(self):
 		if self.mode == PL_MODES[0]:
 			self.power = True
 			self.mode = PL_MODES[1]
+			self.report(Evt.PL_ON,[self.now()])
 
 	def turn_off(self):
 		self.power=False
 		self.mode = PL_MODES[0]
+		self.report(Evt.PL_OFF,[self.now()])
 
 	def start_imaging(self):
 		if self.mode != PL_MODES[1]:
 			return False
 		self.mode = PL_MODES[2]
-		return True
+		Timer(5,self.done_imaging())
+		self.report(Evt.IMG_START,[self.now()])
+		return print(f"\033[33m[{self.now()}]<PL> Imaging started\033[0m") #\033[33m gives a splash of yellow for readability in terminal 
+	def done_imaging(self):
+		self.log.write(f"[{self.now()}]<PL> Imaging taken\r\n")
+		print(f"\033[33m[{self.now()}]<PL> Imaging taken\033[0m")
+		self.taken_images += 1
+		self.last_image_time = self.now()
+		self.report(Evt.IMG_END,[self.now()])
+		self.stop_imaging()
 
 	def stop_imaging(self):
-		#add log to file and or generate noise image with timestamp
 		if self.mode == PL_MODES[2]:
 			self.mode = PL_MODES[1]
 	def sync_time(self,s):
@@ -33,17 +46,25 @@ class Payload:
 		if self.time_set:
 			return (self.obt_base + int(time.monotonic() - self.obt_mono))
 		return int(time.monotonic() - self.t0)
-    
-	def set_mode(self, mode):
-		if mode not in PL_MODES:
-			return False
-		if mode == PL_MODES[0]:
+	def hk(self):
+		self.report(Evt.HK_ACQ,[self.mode,self.taken_images,self.last_image_time])
+
+	def execute(self,cmd):
+		if cmd not in PL_CMD:
+			return print(f"\033[33m[{self.now()}]<PL> Unknown PL command\033[0m")
+		if cmd == PL_CMD[2]:
 			self.turn_off()
-		elif mode == PL_MODES[1]:
-			if self.mode == PL_MODES[0]:
-				self.turn_on()
-			elif self.mode == PL_MODES[2]:
-				self.stop_imaging()
-		elif mode == PL_MODES[2]:
-			return self.start_imaging()
-		return True
+			return print(f"\033[33m[{self.now()}]<PL> PL is powered OFF\033[0m")
+		if cmd == PL_CMD[1]:
+			self.turn_off()
+			return print(f"\033[33m[{self.now()}]<PL> PL is powered ON\033[0m")
+		if cmd == PL_CMD[0]:
+			if self.mode =="IMAGING" or self.mode =="OFF":
+				return print(f"\033[33m[{self.now()}]<PL> PL is busy\033[0m")
+			else:
+				self.start_imaging()
+				return print(f"\033[33m[{self.now()}]<PL> PL is started imaging\033[0m")
+		if cmd == PL_CMD[3]:
+			self.hk()
+
+            

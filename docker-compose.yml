@@ -4,7 +4,8 @@ services:
       context: .
       dockerfile: obc/Dockerfile
     environment:
-      - MIB_PATH=/app/common/mib.txt    
+      - MIB_PATH=/app/common/mib.txt 
+      - PL_LOG=/app/data/   
     networks: [link]
 
   ground:
