@@ -7,14 +7,6 @@ services:
       - MIB_PATH=/app/common/mib.txt    
     networks: [link]
 
-  payload:
-    build:
-      context: .
-      dockerfile: payload/Dockerfile
-    networks: [link]
-    volumes:
-      - ./data/payload:/data  
-
   ground:
     build:
       context: .
