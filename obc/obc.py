@@ -54,20 +54,35 @@ class OBC:
         #TODO check mode
         #TODO check tt
         self.ack(Id,hdr.seq_count)
-        self.execute(Id,args)
+        self.execute(int(Id),args)
         
     def execute(self,Id,args):       
-        if int(Id)==self.tcs["SET-OBT"]["id"]:
+        if Id==self.tcs["SET-OBT"]["id"]:
             self.obt_base, self.obt_mono, self.time_set = int(args), time.monotonic(), True
             self.pl.sync_time(int(args))
             self.event(Evt.OBT_SET, f"OBT SET {s_to_HMS(int(args))}")
             print(f"Time was set to {s_to_HMS(int(args))}")
-        
-        #handle incoming pl
-        if int(Id)==Evt.IMG_END:
+        if Id==self.tcs["REQ-HK"]["id"]:
+            self.obc_hk()
+        if Id==self.tcs["SET-PL-POWER"]["id"]:
+            if int(args):
+                return self.pl.execute(PL_CMD[1])#Power on
+            self.pl.execute(PL_CMD[2])
+        if Id==self.tcs["SET-OBC-MODE"]["id"]:
+            print("hell nah")
+        if Id==self.tcs["PL-TAKE-IMAGE"]["id"]:
+            self.pl.execute(PL_CMD[0])
+        if Id==self.tcs["REQ-PL-HK"]["id"]:
+            self.pl.execute(PL_CMD[3])
+        #handle incoming pl cmd
+        if Id==Evt.IMG_END:
             print(f"PL has returned with{args}")
-        if int(Id)==Evt.PL_ON:
+        if Id==Evt.PL_ON:
             self.event(Evt.PL_ON,f"[{self.now()}]PL ON")
+        if Id==Evt.PL_OFF:
+            self.event(Evt.PL_OFF,f"[{self.now()}]PL ON")
+        if Id==Evt.HK_ACQ:
+            self.event(Evt.HK_ACQ,f"{args}")
         
     def start_pl(self):
         self.pl.execute(PL_CMD[1])#is this pretty no, does this work yes
