@@ -62,8 +62,17 @@ class Ground:
     def parse_cmd(self,cmd):
         parts=cmd.split()
         if parts[0] not in self.tcs:  return print("Error: Unknown command")
+        tc=self.tcs[parts[0]]
         if parts[0] == "SET-OBT":
-            self.sendTC(self.tcs[parts[0]]["target"],f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
+            self.sendTC(tc["target"],f"{tc["id"]}_{0}_{HMS_to_s(parts[1])} ")
+        #if parts[0] == "REQ-HK":
+        #    self.sendTC(tc["target"],f"{tc["id"]}_{0}_{HMS_to_s(parts[1])} ")
+        #if parts[0] == "SET-OBC-MODE":
+        #    self.sendTC(tc["target"],f"{tc["id"]}_{0}_{HMS_to_s(parts[1])} ")
+        #if parts[0] == "SET-PL-POWER":
+        #    self.sendTC(tc["target"],f"{tc["id"]}_{0}_{HMS_to_s(parts[1])} ")
+        #if parts[0] == "REQ-PL-HK":
+        #    self.sendTC(tc["target"],f"{tc["id"]}_{0}_{HMS_to_s(parts[1])} ")
         #TODO add fail checks for timestamp and arguments
         #The TC packet should be of this format
         #"{cmd_id} {timestamp} {args} " #TODO add execution time
