@@ -4,4 +4,5 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY common ./common
 COPY obc/obc.py .
+COPY obc/payload.py .
 CMD ["python", "-u", "obc.py"]

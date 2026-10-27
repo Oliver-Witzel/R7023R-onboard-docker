@@ -18,6 +18,7 @@ class Ground:
         self.pending = {}
         self.last_tm_seq={}
         self.tcs, self.tcIDs = load_mib()  # Load only TCs from MIB
+        self.log = open(os.environ.get("HK_LOG", "HK_log.txt"), "a", buffering=1)
         
 
     def connect(self):
@@ -29,9 +30,9 @@ class Ground:
         self.sel.register(self.sock, selectors.EVENT_READ, self.readTM)
 
 
-    def sendTC(self, input):
+    def sendTC(self,target, input):
         seq = self.seq.next()
-        self.sock.sendall(packer(PacketType.TM,APID_OBC,seq,input.encode()))
+        self.sock.sendall(packer(PacketType.TM,target,seq,input.encode()))
         self.pending[seq] = (APID_OBC,time.monotonic())
         print(f"Sent TC APID={APID_OBC} seq={seq}", flush=True)
     
@@ -55,12 +56,14 @@ class Ground:
         if tm_type==TmType.NACK: txt=f"TC {self.tcIDs[int(args[0])]["name"]} seq:{args[1]} Rejected. Reason:{args[2]}"
         if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(int(args[0])).name} message:{args[1]}"
         print(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}")
+        if tm_type==TmType.HK_PF or tm_type==TmType.HK_PL:
+            self.log.write(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}")
         #del self.pending[hdr.seq_count]
     def parse_cmd(self,cmd):
         parts=cmd.split()
         if parts[0] not in self.tcs:  return print("Error: Unknown command")
         if parts[0] == "SET-OBT":
-            self.sendTC(f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
+            self.sendTC(self.tcs[parts[0]]["target"],f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
         #TODO add fail checks for timestamp and arguments
         #The TC packet should be of this format
         #"{cmd_id} {timestamp} {args} " #TODO add execution time
@@ -84,13 +87,7 @@ class Ground:
                 if seg and time.monotonic() - timestamp > 10:
                     print(f"TC APID={apid} timeout for seg={seg}", flush=True)
                     del self.pending[seg]
-            #yo=True
-            #if yo:
-            #    for n in range(10):
-            #        payload = f"helo {n}".encode()
-            #       self.sendTC(payload)
-            #        time.sleep(1)
-            #yo=False
+            
 
 
 

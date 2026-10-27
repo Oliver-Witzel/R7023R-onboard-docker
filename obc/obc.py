@@ -2,9 +2,9 @@ import selectors
 import socket
 
 from spacepackets.ccsds.spacepacket import SpacePacketHeader
-
+from threading import Timer
 from common.common import *
-from obc.payload import Payload
+from payload import Payload
 
 HOST, PORT = "0.0.0.0", 5000
 
@@ -16,7 +16,7 @@ class OBC:
         self.sel = selectors.DefaultSelector()
         self.gnd = None
         self.mode = OBC_MODES[0]
-        self.pl = Payload()
+        self.pl = Payload(self.execute)
         self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0 
         self.tc_rx=0;self.tc_rej=0
     def send_TM(self,TM_type,data):
@@ -37,6 +37,7 @@ class OBC:
         conn, addr = srv.accept()
         self.gnd = conn
         print("Accepting connection from",addr, flush=True)
+        self.start_pl()
         self.sel.register(conn,selectors.EVENT_READ,self.gnd_read)
 
     def gnd_read(self,conn):
@@ -61,8 +62,16 @@ class OBC:
             self.pl.sync_time(int(args))
             self.event(Evt.OBT_SET, f"OBT SET {s_to_HMS(int(args))}")
             print(f"Time was set to {s_to_HMS(int(args))}")
-
         
+        #handle incoming pl
+        if int(Id)==Evt.IMG_END:
+            print(f"PL has returned with{args}")
+        if int(Id)==Evt.PL_ON:
+            self.event(Evt.PL_ON,f"[{self.now()}]PL ON")
+        
+    def start_pl(self):
+        self.pl.execute(PL_CMD[1])#is this pretty no, does this work yes
+        self.event(Evt.BOOT,f"OBC BOOTED, mode SAFE, time {self.now()}")
             
     def run(self):
         srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -71,7 +80,6 @@ class OBC:
         srv.listen()
         srv.setblocking(False)
         self.sel.register(srv,selectors.EVENT_READ,self.gnd_acc)
-        self.event(Evt.BOOT,f"OBC BOOTED, mode SAFE, time {self.now()}")
         while True:
             for key, _ in self.sel.select():
                 key.data(key.fileobj)

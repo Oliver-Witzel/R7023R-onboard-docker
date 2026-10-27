@@ -5,7 +5,8 @@ import time
 from spacepackets.ccsds.spacepacket import (
     SpacePacket, SpacePacketHeader, PacketType, SequenceFlags,
 )
-APID_OBC = 0x10 
+APID_OBC = 0x10
+APID_PL  = 0x20 
 MIB_PATH = os.environ.get("MIB_PATH", "mib.txt")
 HEADER_SIZE = 6
 
@@ -18,7 +19,7 @@ class Evt(IntEnum):
 
 OBC_MODES = ["SAFE", "NADIR", "TARGET", "TRANSITION"]
 PL_MODES = ["OFF", "ON", "IMAGING"]
-PL_CMD=["TAKE-IMAGE","TURN-ON","TURN-ON","HK"]
+PL_CMD=["TAKE-IMAGE","TURN-ON","TURN-OFF","HK"]
 
 def s_to_HMS(s):
   return f"{s//3600}:{s%3600//60}:{s%60}"
@@ -39,8 +40,9 @@ def load_mib(path=MIB_PATH):
         parts = line.split()
         if line.startswith("TC"):
           args = parts[4].split("=")[1:]
+          target = APID_OBC if parts[3]=="OBC" else APID_PL
           if args and "," in args[0]:args[0]=args[0].split(",")
-          name[parts[1]] = {"name": parts[1], "id":int(parts[2]),"target": parts[3], "args": args, "time_tag_allowed": parts[5] == "YES"}
+          name[parts[1]] = {"name": parts[1], "id":int(parts[2]),"target": target, "args": args, "time_tag_allowed": parts[5] == "YES"}
         #TODO add tms
   return name, {t["id"]: t for t in name.values()}
 

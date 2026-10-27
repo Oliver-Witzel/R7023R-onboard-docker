@@ -6,8 +6,9 @@ class Payload:
         self.mode = PL_MODES[0]
         self.power= False
         self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0
-        self.log = open(os.environ.get("PL_LOG", "Pl_log.txt"), "a", buffering=1)
-        self.taken_images = [len(line.rstrip("\r\n")) for line in self.log]
+        self.log = open(os.environ.get("PL_LOG", "Pl_log.txt"), "a+", buffering=1)
+        self.log.seek(0)
+        self.taken_images = sum(1 for _ in self.log)
         self.last_image_time = 0
         self.report = report
     def turn_on(self):
@@ -25,12 +26,12 @@ class Payload:
         if self.mode != PL_MODES[1]:
             return False
         self.mode = PL_MODES[2]
-        Timer(5,self.done_imaging())
+        Timer(5, self.done_imaging).start()
         self.report(Evt.IMG_START,[self.now()])
-        return print(f"\033[33m[{self.now()}]<PL> Imaging started\033[0m") #\033[33m gives a splash of yellow for readability in terminal 
+         
     def done_imaging(self):
-        self.log.write(f"[{self.now()}]<PL> Imaging taken\r\n")
-        print(f"\033[33m[{self.now()}]<PL> Imaging taken\033[0m")
+        self.log.write(f"[{s_to_HMS(self.now())}]<PL> Image taken\n")
+        print(f"\033[33m[{s_to_HMS(self.now())}]<PL> Image taken\033[0m")
         self.taken_images += 1
         self.last_image_time = self.now()
         self.report(Evt.IMG_END,[self.now()])
@@ -50,21 +51,22 @@ class Payload:
         self.report(Evt.HK_ACQ,[self.mode,self.taken_images,self.last_image_time])
 
     def execute(self,cmd):
+        txt=""
         if cmd not in PL_CMD:
-            return print(f"\033[33m[{self.now()}]<PL> Unknown PL command\033[0m")
+            txt="Unknown PL command"
         if cmd == PL_CMD[2]:
             self.turn_off()
-            return print(f"\033[33m[{self.now()}]<PL> PL is powered OFF\033[0m")
+            txt="PL is powered OFF"
         if cmd == PL_CMD[1]:
-            self.turn_off()
-            return print(f"\033[33m[{self.now()}]<PL> PL is powered ON\033[0m")
+            self.turn_on()
+            txt="PL is powered ON"
         if cmd == PL_CMD[0]:
             if self.mode =="IMAGING" or self.mode =="OFF":
-                return print(f"\033[33m[{self.now()}]<PL> PL is busy\033[0m")
-        else:
-            self.start_imaging()
-            return print(f"\033[33m[{self.now()}]<PL> PL is started imaging\033[0m")
+                txt="PL is busy\033[0m"
+            else:
+                self.start_imaging()
+                txt="Imaging has started"
         if cmd == PL_CMD[3]:
             self.hk()
-
+        print(f"\033[33m[{s_to_HMS(self.now())}]<PL> {txt}\033[0m")#\033[33m gives a splash of yellow for readability in terminal 
             
