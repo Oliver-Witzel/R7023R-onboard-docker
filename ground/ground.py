@@ -61,6 +61,14 @@ class Ground:
         if parts[0] not in self.tcs:  return print("Error: Unknown command")
         if parts[0] == "SET-OBT":
             self.sendTC(f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
+        #if parts[0] == "REQ-HK":
+        #    self.sendTC(f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
+        #if parts[0] == "SET-OBC-MODE":
+        #    self.sendTC(f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
+        #if parts[0] == "SET-PL-POWER":
+        #    self.sendTC(f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
+        #if parts[0] == "REQ-PL-HK":
+        #    self.sendTC(f"{self.tcs[parts[0]]["id"]}_{0}_{HMS_to_s(parts[1])} ")
         #TODO add fail checks for timestamp and arguments
         #The TC packet should be of this format
         #"{cmd_id} {timestamp} {args} " #TODO add execution time
