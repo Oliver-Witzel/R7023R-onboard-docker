@@ -63,7 +63,16 @@ class Ground:
         parts=cmd.split()
         if parts[0] not in self.tcs:  return print("Error: Unknown command")
         tc=self.tcs[parts[0]]
+        
         if parts[0] == "SET-OBT":
+            time = parts[1]
+            values = time.split(":")
+            if len(values) == 3 and all(len(v) == 2 and v.isdigit() for v in values):
+                hh = int(values[0])
+                mm = int(values[1])
+                ss = int(values[2])
+                if 1 <= hh <= 24 and 0 <= mm <= 59 and 0 <= ss < 60:
+        
             self.sendTC(tc["target"],f"{tc["id"]}_{0}_{HMS_to_s(parts[1])} ")
         #if parts[0] == "REQ-HK":
         #    self.sendTC(tc["target"],f"{tc["id"]}_{0}_{HMS_to_s(parts[1])} ")
