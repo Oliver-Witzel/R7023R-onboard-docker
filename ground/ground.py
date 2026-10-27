@@ -76,25 +76,29 @@ class Ground:
                     args = HMS_to_s(parts[1])
                 else:
                     return print("Error: Invalid time format. Please use HH:MM:SS with valid ranges.")
+
         if parts[0] == "REQ-HK":
-            args = ""
+
         if parts[0] == "SET-OBC-MODE":
             if parts[1] in OBC_MODES:
                 args = parts[1]
             else:
                 return print("Error: Invalid OBC mode. Valid modes are:", ", ".join(OBC_MODES))
+        
         if parts[0] == "SET-PL-POWER":
             if parts[1] == "1" or parts[1] == "0":
                 args = parts[1]
             else:
                 return print("Error: Invalid PL power state. Use 1 for ON or 0 for OFF.")
+        
+        if parts[0] == "PL-TAKE-IMAGE":
+        
         if parts[0] == "REQ-PL-HK":
-            args = ""
 
         self.sendTC(tc["target"],f"{tc["id"]}_{0}_{args} ")
-        #TODO add fail checks for timestamp and arguments
         #The TC packet should be of this format
         #"{cmd_id} {timestamp} {args} " #TODO add execution time
+        
     def run(self):
         if not self.sock:self.connect()
         self.sel.register(sys.stdin, selectors.EVENT_READ, None)
