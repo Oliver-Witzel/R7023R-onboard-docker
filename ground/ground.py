@@ -52,19 +52,21 @@ class Ground:
             
     def print_log(self,hdr,tm_type,obt,args):
         txt=""
-        if tm_type==TmType.ACK: 
+        if tm_type==TmType.ACK:
+            self.pending.pop(hdr.seq_count, ("?", 0)) 
             app = "OBC" if hdr.apid==APID_OBC else "PL"
-            txt=f"Acknowledgement: TC={self.tcIDs[int(args[0])]["name"]} Acknowledged by {app}, seq:{args[1]}"
-        if tm_type==TmType.NACK: 
+            txt=f"Acknowledgement: TC={self.tcIDs[int(args[0])]["name"]}  by {app}, seq:{args[1]}"
+        if tm_type==TmType.NACK:
+            self.pending.pop(hdr.seq_count, ("?", 0))  
             app = "OBC" if hdr.apid==APID_OBC else "PL"
-            txt=f"NO Acknowledgement: TC={self.tcIDs[int(args[0])]["name"]} Was Rejected by {app} Because:{args[2]}, seq:{args[1]}"
+            txt=f"NO Acknowledgement: TC={self.tcIDs[int(args[0])]["name"]}Rejected by {app} Because:{args[2]}, seq:{args[1]}"
         if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(int(args[0])).name} message:{args[1]}"
+        if tm_type==TmType.OBC: txt=f"{args}"
         print(f"| GNDT:[{s_to_HMS(get_s())}] | OBT:[{s_to_HMS(obt)}] | {txt}", flush=True)
         if tm_type==TmType.HK_OBC or tm_type==TmType.HK_PL:
             self.log.write(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}|")
-        #del self.pending[hdr.seq_count]
-
-
+        
+        
     def parse_cmd(self,cmd):
         parts=cmd.split()
         if parts[0] not in self.tcs:  return print("Error: Unknown command")
@@ -103,6 +105,7 @@ class Ground:
         if not self.sock:self.connect()
         self.sel.register(sys.stdin, selectors.EVENT_READ, None)
         print("Enter command: ")
+        
         while True:
             for key, _ in self.sel.select(timeout=0.2):
                 if key.fileobj == sys.stdin:# if selcetor event comes from stdin its from the terminal
