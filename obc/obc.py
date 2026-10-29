@@ -7,7 +7,7 @@ from common.common import *
 from payload import Payload
 
 HOST, PORT = "0.0.0.0", 5000
-
+HK_TIME = 5
 class OBC:
     def __init__(self):
         self.tcs, self.tcIDs = load_mib()
@@ -15,10 +15,11 @@ class OBC:
         self.frame = Framer()
         self.sel = selectors.DefaultSelector()
         self.gnd = None
-        self.mode = OBC_MODES[0]; self.target = None; self.trans_time=0
+        self.mode = OBC_MODES[2]; self.target = None; self.trans_time=0
         self.pl = Payload(self.execute)
         self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0 
         self.tc_rx=0;self.tc_rej=0;self.last_tc_seq = None
+        self.last_hk = time.monotonic()
     def send_TM(self,TM_type,data):
         paket = packer(PacketType.TM,APID_OBC,self.seq.next(),f"{TM_type}_{self.now()}_{data}".encode())
         self.gnd.sendall(paket)
@@ -55,7 +56,11 @@ class OBC:
     def on_tc(self,hdr,data):
         Id,tt,args = data.decode().split("_")
         seq=hdr.seq_count
-        tc = self.tcIDs[int(Id)]
+        try:#OBC 3.4
+            tc = self.tcIDs[int(Id)]
+        except (ValueError, KeyError):
+            return self.nack(Id, seq, "Unknown or invalid TC ID")
+
         self.tc_rx += 1
         if self.last_tc_seq is not None and seq != (self.last_tc_seq + 1):
                 self.event(Evt.SEQ_GAP, f"TC seq gap: got {seq} after {self.last_tc_seq}")
@@ -70,7 +75,7 @@ class OBC:
         if tc["target"]==APID_PL:
             if self.mode == OBC_MODES[0]:return "OBC IN SAFE MODE"
             if tc["name"]=="SET-PL-POWER" and int(args)==self.pl.power:return "PL POWER IS AT REQUESTED LEVEL"
-            if not self.pl.power: return "PL IS OFF"
+            if tc["name"]!="SET-PL-POWER" and not self.pl.power: return "PL IS OFF"
         if tc["name"]=='SET-OBC-MODE' and self.mode==args:return "OBC ALREADY AT MODE"
         return None
     def set_mode(self,mode):
@@ -129,6 +134,9 @@ class OBC:
             for key, _ in self.sel.select(0.1):
                 key.data(key.fileobj)
             self.check_transition()
+            if time.monotonic()>=self.last_hk+HK_TIME:
+                self.last_hk = time.monotonic()
+                self.obc_hk()
             
 
 if __name__ == "__main__": OBC().run()   
