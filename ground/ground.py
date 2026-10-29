@@ -52,13 +52,13 @@ class Ground:
             
     def print_log(self,hdr,tm_type,obt,args):
         txt=""
-        if tm_type==TmType.ACK: txt=f"TC {self.tcIDs[int(args[0])]["name"]} seq:{args[1]} Acknowledged by APID:{hdr.apid}"
-        if tm_type==TmType.NACK: txt=f"TC {self.tcIDs[int(args[0])]["name"]} seq:{args[1]} Rejected. Reason:{args[2]}"
+        if tm_type==TmType.ACK: self.pending.pop(hdr.seq_count, ("?", 0));txt=f"TC {self.tcIDs[int(args[0])]["name"]} seq:{args[1]} Acknowledged by APID:{hdr.apid}"
+        if tm_type==TmType.NACK:self.pending.pop(hdr.seq_count, ("?", 0)); txt=f"TC {self.tcIDs[int(args[0])]["name"]} seq:{args[1]} Rejected. Reason:{args[2]}"
         if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(int(args[0])).name} message:{args[1]}"
         print(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}")
-        if tm_type==TmType.HK_PF or tm_type==TmType.HK_PL:
+        if tm_type==TmType.HK_OBC or tm_type==TmType.HK_PL:
             self.log.write(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}")
-        #del self.pending[hdr.seq_count]
+        
     def parse_cmd(self,cmd):
         parts=cmd.split()
         if parts[0] not in self.tcs:  return print("Error: Unknown command")
@@ -89,7 +89,7 @@ class Ground:
             else:
                 return print("Error: Invalid PL power state. Use 1 for ON or 0 for OFF.")
 
-        self.sendTC(tc["target"],f"{tc["id"]}_{0}_{args} ")
+        self.sendTC(tc["target"],f"{tc["id"]}_{0}_{args}")
         #The TC packet datafield should be of this format
         #"{cmd_id} {timestamp} {args} " #TODO add execution time
         
@@ -97,6 +97,7 @@ class Ground:
         if not self.sock:self.connect()
         self.sel.register(sys.stdin, selectors.EVENT_READ, None)
         print("Enter command: ")
+        
         while True:
             for key, _ in self.sel.select(timeout=0.2):
                 if key.fileobj == sys.stdin:# if selcetor event comes from stdin its from the terminal
