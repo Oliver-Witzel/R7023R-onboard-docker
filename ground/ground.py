@@ -19,7 +19,6 @@ class Ground:
         self.last_tm_seq={}
         self.tcs, self.tcIDs = load_mib()  # Load only TCs from MIB
         self.log = open(os.environ.get("HK_LOG", "HK_log.txt"), "a", buffering=1)
-        
 
     def connect(self):
         try: s = socket.create_connection((HOST, PORT), timeout=5)
@@ -61,10 +60,11 @@ class Ground:
             app = "OBC" if hdr.apid==APID_OBC else "PL"
             txt=f"NO Acknowledgement: TC={self.tcIDs[int(args[0])]["name"]}Rejected by {app} Because:{args[2]}, seq:{args[1]}"
         if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(int(args[0])).name} message:{args[1]}"
-        if tm_type==TmType.OBC: txt=f"{args}"
-        print(f"| GNDT:[{s_to_HMS(get_s())}] | OBT:[{s_to_HMS(obt)}] | {txt}", flush=True)
+        if tm_type==TmType.HK_OBC:txt=f"HOUSEKEEPING OBC: PL power {1 if args[0] else 0} Recieved TC:s {args[1]} Rejected TC:s{args[2]}"
+        if tm_type==TmType.HK_PL:txt=f"HOUSEKEEPING PL: Mode {args[0]} Total images taken: {args[1]} Last image time {args[2]}"
+        print(f"[{s_to_HMS(get_s())}] | OBT:[{s_to_HMS(obt)}] | {txt}", flush=True)
         if tm_type==TmType.HK_OBC or tm_type==TmType.HK_PL:
-            self.log.write(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}|")
+            self.log.write(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}|\n")
         
         
     def parse_cmd(self,cmd):
@@ -73,7 +73,7 @@ class Ground:
         tc=self.tcs[parts[0]]
         args=""
         
-        if parts[0] == "SET-OBT":
+        if len(parts) ==2 and parts[0] == "SET-OBT":
             time = parts[1]
             values = time.split(":")
             if len(values) == 3 and all(len(v) == 2 and v.isdigit() for v in values):
@@ -86,13 +86,13 @@ class Ground:
                     return print("Error: Invalid time format. Please use HH:MM:SS with valid ranges.")
 
         if parts[0] == "SET-OBC-MODE":
-            if parts[1] in OBC_MODES:
+            if len(parts) ==2 and parts[1] in OBC_MODES:
                 args = parts[1]
             else:
                 return print("Error: Invalid OBC mode. Valid modes are:", ", ".join(OBC_MODES))
         
         if parts[0] == "SET-PL-POWER":
-            if parts[1] == "1" or parts[1] == "0":
+            if len(parts) ==2 and (parts[1] == "1" or parts[1] == "0"):
                 args = parts[1]
             else:
                 return print("Error: Invalid PL power state. Use 1 for ON or 0 for OFF.")

@@ -3,8 +3,8 @@ from threading import Timer
 
 class Payload:
     def __init__(self,report):
-        self.mode = PL_MODES[0]
-        self.power= False
+        self.mode = PL_MODES[1]
+        self.power= True
         self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0
         self.log = open(os.environ.get("PL_LOG", "Pl_log.txt"), "a+", buffering=1)
         self.log.seek(0)

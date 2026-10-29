@@ -112,13 +112,13 @@ class OBC:
             self.pl.execute(PL_CMD[3])
         #handle incoming pl cmd
         if Type==Evt.IMG_END:
-            print(f"PL has returned with{args}")
+            self.event(Evt.IMG_END,f"[{s_to_HMS(int(args))}] PL image taken")
         if Type==Evt.PL_ON:
-            self.event(Evt.PL_ON,f"[{self.now()}]PL ON")
+            self.event(Evt.PL_ON,f"[{s_to_HMS(self.now())}]PL ON")
         if Type==Evt.PL_OFF:
-            self.event(Evt.PL_OFF,f"[{self.now()}]PL ON")
+            self.event(Evt.PL_OFF,f"[{s_to_HMS(self.now())}]PL ON")
         if Type==Evt.HK_ACQ:
-            self.pl_hk(Evt.HK_ACQ,args)
+            self.pl_hk(args)
         
         
             
@@ -134,9 +134,9 @@ class OBC:
             for key, _ in self.sel.select(0.1):
                 key.data(key.fileobj)
             self.check_transition()
-            if time.monotonic()>=self.last_hk+HK_TIME:
+            if time.monotonic()>=self.last_hk+HK_TIME and self.gnd:
                 self.last_hk = time.monotonic()
-                self.obc_hk()
+                #self.obc_hk()
             
 
 if __name__ == "__main__": OBC().run()   
