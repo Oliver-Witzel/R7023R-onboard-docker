@@ -11,7 +11,7 @@ MIB_PATH = os.environ.get("MIB_PATH", "mib.txt")
 HEADER_SIZE = 6
 
 class TmType(IntEnum):
-    ACK = 1; NACK = 2; HK_PF = 3; HK_PL = 4; EVENT = 5
+    ACK = 1; NACK = 2; HK_OBC = 3; HK_PL = 4; EVENT = 5
 
 class Evt(IntEnum):
     BOOT = 1; OBT_SET = 2; MODE_ACQ = 3; PL_ON = 4; PL_OFF = 5

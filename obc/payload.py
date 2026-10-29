@@ -15,26 +15,26 @@ class Payload:
         if self.mode == PL_MODES[0]:
             self.power = True
             self.mode = PL_MODES[1]
-            self.report(Evt.PL_ON,[self.now()])
+            self.report(Evt.PL_ON,f"{self.now()}")
 
     def turn_off(self):
         self.power=False
         self.mode = PL_MODES[0]
-        self.report(Evt.PL_OFF,[self.now()])
+        self.report(Evt.PL_OFF,f"{self.now()}")
 
     def start_imaging(self):
         if self.mode != PL_MODES[1]:
             return False
         self.mode = PL_MODES[2]
         Timer(5, self.done_imaging).start()
-        self.report(Evt.IMG_START,[self.now()])
+        self.report(Evt.IMG_START,f"{self.now()}")
          
     def done_imaging(self):
         self.log.write(f"[{s_to_HMS(self.now())}]<PL> Image taken\n")
         print(f"\033[33m[{s_to_HMS(self.now())}]<PL> Image taken\033[0m")
         self.taken_images += 1
         self.last_image_time = self.now()
-        self.report(Evt.IMG_END,[self.now()])
+        self.report(Evt.IMG_END,f"{self.now()}")
         self.stop_imaging()
 
     def stop_imaging(self):
@@ -48,7 +48,7 @@ class Payload:
             return (self.obt_base + int(time.monotonic() - self.obt_mono))
         return int(time.monotonic() - self.t0)
     def hk(self):
-        self.report(Evt.HK_ACQ,[self.mode,self.taken_images,self.last_image_time])
+        self.report(Evt.HK_ACQ,f"{self.mode},{self.taken_images},{self.last_image_time}")
 
     def execute(self,cmd):
         txt=""

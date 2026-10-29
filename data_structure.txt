@@ -16,11 +16,13 @@ GENERAL
 "{tm_type}_{obt}_{args}"
 ARGS
 ACK
-"{seq},{cmd_id}"
+"{cmd_id},{seq}"
 NACK
-"{seq},{cmd_id},{mes}"
+"{cmd_id},{seq},{mes}"
 HK_OBC
 "{time_set},{MODE},{pl_power},{tc_recived},{tc_rejected},{tt_queue}"
+HK_PL
+"{Mode},{Taken_images},{Last_image_time}
 EVENT
 "{id},{mes}"
 

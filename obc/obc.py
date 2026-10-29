@@ -23,9 +23,12 @@ class OBC:
         paket = packer(PacketType.TM,APID_OBC,self.seq.next(),f"{TM_type}_{self.now()}_{data}".encode())
         self.gnd.sendall(paket)
     def ack(self,cmd_id,seq): self.send_TM(TmType.ACK,f"{cmd_id},{seq}")
-    def nack(self,cmd_id,seq,mes): self.send_TM(TmType.NACK,f"{cmd_id},{seq},{mes}")
-    def obc_hk(self):self.send_TM(1,1)    
+    def nack(self,cmd_id,seq,mes): self.send_TM(TmType.NACK,f"{cmd_id},{seq},{mes}") 
     def event(self,id,mes): self.send_TM(TmType.EVENT,f"{id},{mes}")
+    def obc_hk(self):
+        self.send_TM(TmType.HK_OBC,f"{self.pl.power},{self.tc_rx},{self.tc_rej}")
+    def pl_hk(self,args):
+        self.send_TM(TmType.HK_PL,args)
 
     def now(self):
         if self.time_set:
@@ -82,7 +85,7 @@ class OBC:
         if Id==Evt.PL_OFF:
             self.event(Evt.PL_OFF,f"[{self.now()}]PL ON")
         if Id==Evt.HK_ACQ:
-            self.event(Evt.HK_ACQ,f"{args}")
+            self.pl_hk(Evt.HK_ACQ,args)
         
     def start_pl(self):
         self.pl.execute(PL_CMD[1])#is this pretty no, does this work yes
