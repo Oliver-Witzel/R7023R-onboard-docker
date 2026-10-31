@@ -136,7 +136,7 @@ class OBC:
             self.check_transition()
             if time.monotonic()>=self.last_hk+HK_TIME and self.gnd:
                 self.last_hk = time.monotonic()
-                #self.obc_hk()
+                self.obc_hk()
             
 
 if __name__ == "__main__": OBC().run()   
