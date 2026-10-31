@@ -7,7 +7,7 @@ from common.common import *
 from payload import Payload
 
 HOST, PORT = "0.0.0.0", 5000
-HK_TIME = 5
+HK_TIME = 30
 class OBC:
     def __init__(self):
         self.tcs, self.tcIDs = load_mib()
@@ -26,7 +26,7 @@ class OBC:
     def ack(self,cmd_id,seq): self.send_TM(TmType.ACK,f"{cmd_id},{seq}")
     def nack(self,cmd_id,seq,mes):
         self.tc_rej+=1;
-        print(f"rejected: {mes}") 
+        print(f"[{s_to_HMS(self.now())}] rejected: {mes}", flush=True) 
         self.send_TM(TmType.NACK,f"{cmd_id},{seq},{mes}") 
     def event(self,id,mes): self.send_TM(TmType.EVENT,f"{id},{mes}")
     def obc_hk(self):
@@ -43,13 +43,13 @@ class OBC:
     def gnd_acc(self,srv):
         conn, addr = srv.accept()
         self.gnd = conn
-        print("Accepting connection from",addr, flush=True)
+        print(f"[{s_to_HMS(self.now())}] Accepting connection from",addr, flush=True)
         self.event(Evt.BOOT,f"OBC BOOTED, mode SAFE, time {self.now()}")
         self.sel.register(conn,selectors.EVENT_READ,self.gnd_read)
 
     def gnd_read(self,conn):
         try:buf = conn.recv(4096)
-        except ConnectionResetError:self.gnd=None;return print("dropped gnd")
+        except ConnectionResetError:self.gnd=None;return print(f"[{s_to_HMS(self.now())}] dropped gnd", flush=True)
         for hdr,data in self.frame.add(buf):
             self.on_tc(hdr,data)       
 
@@ -97,7 +97,7 @@ class OBC:
             self.obt_base, self.obt_mono, self.time_set = int(args), time.monotonic(), True
             self.pl.sync_time(int(args))
             self.event(Evt.OBT_SET, f"OBT SET {s_to_HMS(int(args))}")
-            print(f"Time was set to {s_to_HMS(int(args))}")
+            print(f"[{s_to_HMS(self.now())}] Time was set to {s_to_HMS(int(args))}", flush=True)
         if Type=="REQ-HK":
             self.obc_hk()
         if Type=="SET-PL-POWER":
@@ -129,14 +129,14 @@ class OBC:
         srv.listen()
         srv.setblocking(False)
         self.sel.register(srv,selectors.EVENT_READ,self.gnd_acc)
-        print("OBC up, SAFE", flush=True)
+        print(f"[{s_to_HMS(self.now())}] OBC up, SAFE", flush=True)
         while True:
             for key, _ in self.sel.select(0.1):
                 key.data(key.fileobj)
             self.check_transition()
             if time.monotonic()>=self.last_hk+HK_TIME and self.gnd:
                 self.last_hk = time.monotonic()
-                #self.obc_hk()
+                self.obc_hk()
             
 
 if __name__ == "__main__": OBC().run()   

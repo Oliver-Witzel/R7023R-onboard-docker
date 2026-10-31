@@ -2,7 +2,10 @@ import selectors
 import socket
 import sys
 import time
+from threading import Thread
 
+from prompt_toolkit import PromptSession
+from prompt_toolkit.patch_stdout import patch_stdout
 from spacepackets.ccsds.spacepacket import PacketType
 
 from common.common import *
@@ -25,7 +28,7 @@ class Ground:
         except OSError: print("Whoops"); return
         s.setblocking(False)
         self.sock=s
-        print("Connection to S/C established")
+        print("\033[34mConnection to S/C established\033[0m", flush=True)
         self.sel.register(self.sock, selectors.EVENT_READ, self.readTM)
 
 
@@ -33,14 +36,14 @@ class Ground:
         seq = self.seq.next()
         self.sock.sendall(packer(PacketType.TM,target,seq,input.encode()))
         self.pending[seq] = (APID_OBC,time.monotonic())
-        print(f"Sent TC APID={APID_OBC} seq={seq}", flush=True)
+        print(f"\033[34mSent TC APID={APID_OBC} seq={seq}\033[0m", flush=True)
     
     def readTM(self, sock):
         data = sock.recv(4096)
         for hdr, payload in self.frame.add(data):
             last_seq = self.last_tm_seq.get(hdr.apid)
             if last_seq is not None and hdr.seq_count != last_seq+1:
-                print(f"TM seq gap for APID={hdr.apid}  at last_seq={last_seq}", flush=True)
+                print(f"\033[33mTM seq gap for APID={hdr.apid}  at last_seq={last_seq}\033[0m", flush=True)
             self.last_tm_seq[hdr.apid] = hdr.seq_count
             tm_type,obt,args=payload.decode().split("_")
             tm_type = int(tm_type)
@@ -62,17 +65,16 @@ class Ground:
         if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(int(args[0])).name} message:{args[1]}"
         if tm_type==TmType.HK_OBC:txt=f"HOUSEKEEPING OBC: PL power {1 if args[0] else 0} Recieved TC:s {args[1]} Rejected TC:s{args[2]}"
         if tm_type==TmType.HK_PL:txt=f"HOUSEKEEPING PL: Mode {args[0]} Total images taken: {args[1]} Last image time {args[2]}"
-        print(f"[{s_to_HMS(get_s())}] | OBT:[{s_to_HMS(obt)}] | {txt}", flush=True)
+        print(f"\033[32m[{s_to_HMS(get_s())}] | OBT:[{s_to_HMS(obt)}] | {txt}\033[0m", flush=True)
         if tm_type==TmType.HK_OBC or tm_type==TmType.HK_PL:
             self.log.write(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}|\n")
         
         
     def parse_cmd(self,cmd):
         parts=cmd.split()
-        if parts[0] not in self.tcs:  return print("Error: Unknown command")
+        if parts[0] not in self.tcs:  return print("\033[31mError: Unknown command\033[0m", flush=True)
         tc=self.tcs[parts[0]]
         args=""
-        
         if len(parts) ==2 and parts[0] == "SET-OBT":
             time = parts[1]
             values = time.split(":")
@@ -83,43 +85,50 @@ class Ground:
                 if 1 <= hh <= 24 and 0 <= mm <= 59 and 0 <= ss < 60:
                     args = HMS_to_s(parts[1])
                 else:
-                    return print("Error: Invalid time format. Please use HH:MM:SS with valid ranges.")
+                    return print("\033[31mError: Invalid time format. Please use HH:MM:SS with valid ranges.\033[0m", flush=True)
 
         if parts[0] == "SET-OBC-MODE":
             if len(parts) ==2 and parts[1] in OBC_MODES:
                 args = parts[1]
             else:
-                return print("Error: Invalid OBC mode. Valid modes are:", ", ".join(OBC_MODES))
+                return print("\033[31mError: Invalid OBC mode. Valid modes are:\033[0m", ", ".join(OBC_MODES), flush=True)
         
         if parts[0] == "SET-PL-POWER":
             if len(parts) ==2 and (parts[1] == "1" or parts[1] == "0"):
                 args = parts[1]
             else:
-                return print("Error: Invalid PL power state. Use 1 for ON or 0 for OFF.")
+                return print("\033[31mError: Invalid PL power state. Use 1 for ON or 0 for OFF.\033[0m", flush=True)
 
         self.sendTC(tc["target"],f"{tc["id"]}_{0}_{args}")
         #The TC packet datafield should be of this format
         #"{cmd_id} {timestamp} {args} " #TODO add execution time
-        
-    def run(self):
-        if not self.sock:self.connect()
-        self.sel.register(sys.stdin, selectors.EVENT_READ, None)
-        print("Enter command: ")
-        
+    def TM_handler(self):
         while True:
             for key, _ in self.sel.select(timeout=0.2):
-                if key.fileobj == sys.stdin:# if selcetor event comes from stdin its from the terminal
-                    cmd = sys.stdin.readline().strip()
-                    if cmd == "QUIT": return 
-                    if cmd: self.parse_cmd(cmd)
-                    print(">")
-                else: key.data(key.fileobj)#otherwise call the passed function
+                key.data(key.fileobj)#waits for TM to arrive on TCP LINK
 
             
             for seg,(apid, timestamp) in list(self.pending.items()):
                 if seg and time.monotonic() - timestamp > 10:
-                    print(f"TC APID={apid} timeout for seg={seg}", flush=True)
+                    print(f"\033[33mTC APID={apid} timeout for seq={seg}\033[0m", flush=True)
                     del self.pending[seg]
+    def run(self):
+        if not self.sock:self.connect()
+        
+        session = PromptSession()
+
+        with patch_stdout(raw=True):
+            Thread(target=self.TM_handler,daemon=True).start()#Put Tm in secondary thread to allow for smooth UI
+            while True:
+                try:
+                    cmd = session.prompt("> ")
+                except (EOFError, KeyboardInterrupt):
+                    return
+
+                if cmd == "QUIT":
+                    return
+                if cmd:
+                    self.parse_cmd(cmd)
             
 
 
