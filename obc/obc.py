@@ -15,7 +15,7 @@ class OBC:
         self.frame = Framer()
         self.sel = selectors.DefaultSelector()
         self.gnd = None
-        self.mode = OBC_MODES[2]; self.target = None; self.trans_time=0
+        self.mode = OBC_MODES[0]; self.target = None; self.trans_time=0
         self.pl = Payload(self.execute)
         self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0 
         self.tc_rx=0;self.tc_rej=0;self.last_tc_seq = None
@@ -136,7 +136,7 @@ class OBC:
             self.check_transition()
             if time.monotonic()>=self.last_hk+HK_TIME and self.gnd:
                 self.last_hk = time.monotonic()
-                self.obc_hk()
+                #self.obc_hk()
             
 
 if __name__ == "__main__": OBC().run()   
