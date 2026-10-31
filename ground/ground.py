@@ -55,11 +55,11 @@ class Ground:
     def print_log(self,hdr,tm_type,obt,args):
         txt=""
         if tm_type==TmType.ACK:
-            self.pending.pop(hdr.seq_count, ("?", 0)) 
+            self.pending.pop(args[1], ("?", 0)) 
             app = "OBC" if hdr.apid==APID_OBC else "PL"
             txt=f"Acknowledgement: TC={self.tcIDs[int(args[0])]["name"]}  by {app}, seq:{args[1]}"
         if tm_type==TmType.NACK:
-            self.pending.pop(hdr.seq_count, ("?", 0))  
+            self.pending.pop(args[1], ("?", 0))  
             app = "OBC" if hdr.apid==APID_OBC else "PL"
             txt=f"NO Acknowledgement: TC={self.tcIDs[int(args[0])]["name"]}Rejected by {app} Because:{args[2]}, seq:{args[1]}"
         if tm_type==TmType.EVENT: txt=f"EVENT: {Evt(int(args[0])).name} message:{args[1]}"

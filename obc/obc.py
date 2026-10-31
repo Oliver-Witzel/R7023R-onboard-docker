@@ -23,7 +23,8 @@ class OBC:
     def send_TM(self,TM_type,data):
         paket = packer(PacketType.TM,APID_OBC,self.seq.next(),f"{TM_type}_{self.now()}_{data}".encode())
         self.gnd.sendall(paket)
-    def ack(self,cmd_id,seq): self.send_TM(TmType.ACK,f"{cmd_id},{seq}")
+    def ack(self,cmd_id,seq):
+        self.send_TM(TmType.ACK,f"{cmd_id},{seq}")
     def nack(self,cmd_id,seq,mes):
         self.tc_rej+=1;
         print(f"[{s_to_HMS(self.now())}] rejected: {mes}", flush=True) 

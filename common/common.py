@@ -59,7 +59,7 @@ class Framer:
     while len(self.buf)>=HEADER_SIZE:#only loop through when the header or more has arrived
       header = SpacePacketHeader.unpack(bytes(self.buf[:HEADER_SIZE]))
       total = HEADER_SIZE+header.data_len + 1 #CCSDS loves the minus one 
-      if len(self.buf)>total: #Yeet short packages
+      if len(self.buf)<total: #Yeet short packages
         break
       output.append((header,bytes(self.buf[HEADER_SIZE:total])))
       del self.buf[:total]# remove packet and continue
