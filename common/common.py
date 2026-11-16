@@ -27,7 +27,17 @@ def s_to_HMS(s):
 def HMS_to_s(hms):
   t,h,s = hms.split(":")
   return int(t)*3600+int(h)*60+int(s)
-
+def check_HMS(time):
+  values = time.strip().split(":")
+  if len(values) == 3 and all(len(v) == 2 and v.isdigit() for v in values):
+      hh = int(values[0])
+      mm = int(values[1])
+      ss = int(values[2])
+      if 1 <= hh <= 24 and 0 <= mm <= 59 and 0 <= ss < 60:
+          return True
+  print("\033[31mError: Invalid time format. Please use HH:MM:SS with valid ranges.\033[0m", flush=True)
+  return False
+    
 def get_s():
   t = time.localtime()
   return t.tm_hour * 3600 + t.tm_min * 60 + t.tm_sec

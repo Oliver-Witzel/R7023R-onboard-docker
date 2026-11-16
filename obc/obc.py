@@ -1,6 +1,6 @@
 import selectors
 import socket
-
+import heapq
 from spacepackets.ccsds.spacepacket import SpacePacketHeader
 from threading import Timer
 from common.common import *
@@ -20,6 +20,7 @@ class OBC:
         self.t0 = time.monotonic(); self.time_set = False; self.obt_base = 0; self.obt_mono = 0 
         self.tc_rx=0;self.tc_rej=0;self.last_tc_seq = None
         self.last_hk = time.monotonic()
+        self.queue = []
     def send_TM(self,TM_type,data):
         paket = packer(PacketType.TM,APID_OBC,self.seq.next(),f"{TM_type}_{self.now()}_{data}".encode())
         self.gnd.sendall(paket)
@@ -56,6 +57,7 @@ class OBC:
 
     def on_tc(self,hdr,data):
         Id,tt,args = data.decode().split("_")
+        tt = int(tt)
         seq=hdr.seq_count
         try:#OBC 3.4
             tc = self.tcIDs[int(Id)]
@@ -66,11 +68,11 @@ class OBC:
         if self.last_tc_seq is not None and seq != (self.last_tc_seq + 1):
                 self.event(Evt.SEQ_GAP, f"TC seq gap: got {seq} after {self.last_tc_seq}")
                 self.last_tc_seq = seq
-        why = self.check_mode(tc,args)
+        why = self.check_mode(tc,args) or self.check_tt(tc,tt)
         if why:return self.nack(Id,seq,why)
-        #TODO check tt
         self.ack(Id,seq)
-        self.execute(tc,args)
+        if tt!=0:heapq.heappush(self.queue,(tt,seq,tc,args))
+        else:self.execute(tc,args)
     def check_mode(self,tc,args):
         if self.mode == OBC_MODES[3]: return "IN TRANSITION"
         if tc["target"]==APID_PL:
@@ -79,6 +81,11 @@ class OBC:
             if tc["name"]!="SET-PL-POWER" and not self.pl.power: return "PL IS OFF"
         if tc["name"]=='SET-OBC-MODE' and self.mode==args:return "OBC ALREADY AT MODE"
         return None
+    def check_tt(self,tc,tt):
+        if tt==0: return None
+        if not tc["time_tag_allowed"]: return "TIMETAG NOT ALLOWED"
+        if not self.time_set: return "OBT NOT SET"
+        if tt <= self.now(): return "TIMETAG OVERDUE"
     def set_mode(self,mode):
         if mode == OBC_MODES[0] and self.pl.power:
             self.pl.execute(PL_CMD[2])
@@ -90,7 +97,15 @@ class OBC:
         if self.mode == OBC_MODES[3] and time.monotonic()>=self.trans_time:
             self.mode = self.target
             self.event(Evt.MODE_ACQ, f"MODE {self.mode} ACQUIRED at {s_to_HMS(self.now())}")
-
+    def check_queue(self):
+        while self.queue and self.queue[0][0]<=self.now():
+            tt,seq,tc,args = heapq.heappop(self.queue)
+            why = self.check_mode(tc,args)
+            if why:
+                self.event(Evt.TT_FAIL, f"TT TC {seq} failed at {s_to_HMS(self.now())}: {why}")
+            else:
+                self.execute(tc, args)
+                self.event(Evt.TT_EXEC, f"TT TC {seq} executed at {s_to_HMS(self.now())}")
 
     def execute(self,tc,args):
         Type = tc["name"] if isinstance(tc, dict) else tc       
@@ -135,6 +150,7 @@ class OBC:
             for key, _ in self.sel.select(0.1):
                 key.data(key.fileobj)
             self.check_transition()
+            self.check_queue()
             if time.monotonic()>=self.last_hk+HK_TIME and self.gnd:
                 self.last_hk = time.monotonic()
                 self.obc_hk()

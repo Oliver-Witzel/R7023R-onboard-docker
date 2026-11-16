@@ -70,23 +70,20 @@ class Ground:
             self.log.write(f"[{s_to_HMS(get_s())}] OBT {s_to_HMS(obt)}  {txt}|\n")
         
         
-    def parse_cmd(self,cmd):
+    def parse_cmd(self,line):
+        tt=0
+        c = line.split("@")
+        if len(c)==2:cmd,tt=c[0],c[1]
+        else:cmd=c[0]
+        if tt and check_HMS(tt):
+                tt = HMS_to_s(tt)
         parts=cmd.split()
         if parts[0] not in self.tcs:  return print("\033[31mError: Unknown command\033[0m", flush=True)
         tc=self.tcs[parts[0]]
         args=""
-        if len(parts) ==2 and parts[0] == "SET-OBT":
-            time = parts[1]
-            values = time.split(":")
-            if len(values) == 3 and all(len(v) == 2 and v.isdigit() for v in values):
-                hh = int(values[0])
-                mm = int(values[1])
-                ss = int(values[2])
-                if 1 <= hh <= 24 and 0 <= mm <= 59 and 0 <= ss < 60:
-                    args = HMS_to_s(parts[1])
-                else:
-                    return print("\033[31mError: Invalid time format. Please use HH:MM:SS with valid ranges.\033[0m", flush=True)
-
+        if len(parts) ==2 and parts[0] == "SET-OBT" and check_HMS(parts[1]):
+                args = HMS_to_s(parts[1]) 
+                    
         if parts[0] == "SET-OBC-MODE":
             if len(parts) ==2 and parts[1] in OBC_MODES:
                 args = parts[1]
@@ -99,7 +96,7 @@ class Ground:
             else:
                 return print("\033[31mError: Invalid PL power state. Use 1 for ON or 0 for OFF.\033[0m", flush=True)
 
-        self.sendTC(tc["target"],f"{tc["id"]}_{0}_{args}")
+        self.sendTC(tc["target"],f"{tc["id"]}_{tt}_{args}")
         #The TC packet datafield should be of this format
         #"{cmd_id} {timestamp} {args} " #TODO add execution time
     def TM_handler(self):
